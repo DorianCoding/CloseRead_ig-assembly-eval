@@ -23,7 +23,7 @@ warnings.filterwarnings('ignore')
 #Visualization Functions
 
 
-def plot_locus_length(pri_pileup, alt_pileup, gene, chr1_color, chr2_color, dirOut, haploid, chr1, chr2=None):
+def plot_locus_length(pri_pileup, alt_pileup, gene, chr1_color, chr2_color, dirOut, haploid, chr1, chr2=None, show=False):
     """
     Plot the locus length for the primary and alternate haplotype.
     
@@ -74,10 +74,10 @@ def plot_locus_length(pri_pileup, alt_pileup, gene, chr1_color, chr2_color, dirO
 
     # Save the plot
     plt.savefig(f'{dirOut}/{gene}.length.png', format="png", dpi=300, bbox_inches='tight')
-    plt.show()
+    if show: plt.show()
 
 
-def plot_summary(pri_data, alt_data, chr1_color, chr2_color, haploid, dirOut, gene, chr1, chr2):
+def plot_summary(pri_data, alt_data, chr1_color, chr2_color, haploid, dirOut, gene, chr1, chr2, show=False):
     """
     Plots a summary evaluation
     Args:
@@ -190,7 +190,7 @@ def plot_summary(pri_data, alt_data, chr1_color, chr2_color, haploid, dirOut, ge
         
     #plt.tight_layout()
     plt.savefig(f'{dirOut}/{gene}.summary.allreads.png', format="png", dpi=300, bbox_inches='tight')
-    plt.show()
+    if show: plt.show()
 
 
 def plot_coverage(
@@ -207,10 +207,11 @@ def plot_coverage(
     max_position, 
     chr_label, 
     gene, 
-    dirOut, 
-    color60="#BBBBBB", 
-    colormid="#EECC66", 
-    color0="#BB5566"
+    dirOut,
+    show=False,
+    color60="#AAA", 
+    colormid="#43EBF9", 
+    color0="#F95143"
 ):
     """
     Plots coverage by read mapping quality across a genomic region.
@@ -254,9 +255,9 @@ def plot_coverage(
             axes.axvspan(start, end, facecolor='purple', alpha=0.7)
 
     # Plot coverage for different mapping qualities
-    axes.fill_between(positions, coverage_counts, step="pre", alpha=0.8, label='MapQ = 60', facecolor=color60, zorder=0.5)
-    axes.fill_between(positions, mid_counts, step="pre", alpha=0.9, label='MapQ = 1~59', facecolor=colormid, zorder=0.5)
-    axes.fill_between(positions, zero_counts, step="pre", alpha=0.5, label='MapQ = 0', facecolor=color0, zorder=0.5)
+    axes.fill_between(positions, coverage_counts, step="pre", alpha=0.5, label='MapQ = 60', facecolor=color60, zorder=0.5)
+    axes.fill_between(positions, mid_counts, step="pre", alpha=0.7, label='MapQ = 1~59', facecolor=colormid, zorder=0.5)
+    axes.fill_between(positions, zero_counts, step="pre", alpha=0.6, label='MapQ = 0', facecolor=color0, zorder=0.5)
 
     # Plot details
     axes.set_title(f'Coverage by Reads in {chr_label}', fontweight='bold', size=12)
@@ -270,13 +271,13 @@ def plot_coverage(
     # Save the plot
     plt.tight_layout()
     plt.savefig(f'{dirOut}/{gene}.{chr_label}.readcoverage.all.png', format="png", dpi=300, bbox_inches='tight')
-    plt.show()
+    if show: plt.show()
 
 
 
 def plot_mismatch_coverage(pileup, bin_count, positions, start_indices, end_indices, 
                            high_mismatch_size, start_breaks, end_breaks, chr_color, 
-                           chr_label, gene, dirOut, cmap, min_position, max_position):
+                           chr_label, gene, dirOut, cmap, min_position, max_position, show=False):
     """
     Plots basepair level coverage (% mismatch per position) and a heatmap of poorly supported positions.
 
@@ -342,4 +343,4 @@ def plot_mismatch_coverage(pileup, bin_count, positions, start_indices, end_indi
 
     # Save the plot
     plt.savefig(f'{dirOut}/{gene}.{chr_label}.basecoverage.PerCorrect.png', format="png", dpi=300, bbox_inches='tight')
-    plt.show()
+    if show: plt.show()
