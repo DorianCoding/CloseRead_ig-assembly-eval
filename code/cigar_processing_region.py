@@ -60,12 +60,17 @@ def calculate_mismatches(read):
 def process_bam_file(bam_file_path, region_list_IGH, region_list_IGK, region_list_IGL, output_dir): #, region_list_TRA, region_list_TRB, region_list_TRG):
     """ Process a BAM file to estimate mismatches for each read. """
     # Output file names
+    if not os.path.exists(path):
+        print(f"{output_dir} was created.")
+        os.makedirs(output_dir)
+    else:
+        print(f"{output_dir} already exists and will be overwritten.")
     output_file_names = [os.path.join(output_dir, "IGH.txt"), os.path.join(output_dir, "IGK.txt"), os.path.join(output_dir, "IGL.txt")]#, os.path.join(output_dir, "TRA.txt"), os.path.join(output_dir, "TRB.txt"), os.path.join(output_dir, "TRG.txt")]
-    non_overlap_file_name = os.path.join(output_dir,"nonIG.txt")
+    #non_overlap_file_name = os.path.join(output_dir,"nonIG.txt")
 
     # Open output files
     output_files = [open(name, "w") for name in output_file_names]
-    non_overlap_file = open(non_overlap_file_name, "w")
+    #non_overlap_file = open(non_overlap_file_name, "w")
 
     treesIGH = {}
     treesIGK = {}
@@ -149,7 +154,11 @@ def process_bam_file(bam_file_path, region_list_IGH, region_list_IGK, region_lis
     print("")
     for i, tree_dict in enumerate(trees):
         for chr, pos in tree_dict.items():
-            for read in bamfile.fetch(None,None,None,str(chr) + ":" + str(pos.begin()) + "-" + str(pos.end())):
+            reads = bamfile.fetch(None,None,None,str(chr) + ":" + str(pos.begin()) + "-" + str(pos.end()))
+            if not reads:
+                print(f"No reads found in region: {chr}:{pos}, skipping")
+                continue
+            for read in reads:
                 mismatches, longindels, total_indel_length, soft_clipping, hard_clipping = calculate_mismatches(read)
                 read_length = read.query_length if read.query_length else read.infer_query_length()
                 if not read_length:
@@ -195,7 +204,7 @@ def process_bam_file(bam_file_path, region_list_IGH, region_list_IGK, region_lis
     bamfile.close()
     for file in output_files:
         file.close()
-    non_overlap_file.close()
+    #non_overlap_file.close()
 
 
 def main():
@@ -256,9 +265,10 @@ def main():
     print("IGK regions:", region_list_IGK)
     print("IGL regions:", region_list_IGL)
 
-    if args.input_file.endswith('.bam'):
+    if args.input_file.endswith('.sam') or args.input_file.endswith('.bam'):
         process_bam_file(args.input_file, region_list_IGH, region_list_IGK, region_list_IGL, args.output) #region_list_TRA, region_list_TRB, region_list_TRG)
-
+    else:
+        raise ValueError("Not implemented.")
 
 if __name__ == "__main__":
     main()
