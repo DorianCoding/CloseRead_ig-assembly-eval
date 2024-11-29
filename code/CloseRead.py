@@ -97,7 +97,7 @@ if __name__ == "__main__":
             print("You said genome is haploid but you have alternate file, only haploid will be used.")
             hap=True
         elif not args.ha and not os.path.exists(alt_pileup_file):
-            print(f"Haploit = True : Alternate mpileup file not found so not used: {alt_pileup_file}")
+            print(f"Haploid set to True : Alternate mpileup file not found so not used: {alt_pileup_file}")
             hap=True
         else:
             hap=args.ha

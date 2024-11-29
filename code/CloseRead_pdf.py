@@ -89,30 +89,21 @@ def make_pdf(both,image_files, output_filename, species, CommonName, LatinName, 
     current_y += scaled_height  # Update the y position for the next image
     max=6 if both else 4
     for image_path in image_files[3:max]:
-        if image_path == image_files[3]:
+        if image_path == image_files[3] or image_path == image_files[5]:
             img = Image.open(image_path)
             orig_width, orig_height = img.size
-            scaled_width = width * 0.85  # Scale each image to fit the page width
+            scaled_width = width * 0.85 if both else width * 1.1  # Scale each image to fit the page width
             scaled_height = orig_height * (scaled_width / orig_width)  # Maintain aspect ratio
-            pdf.image(image_path, x=780, y=current_y, w=scaled_width, h=scaled_height)
-            current_y += scaled_height  # Update the y position for the next image
-        elif image_path == image_files[5]:
-            img = Image.open(image_path)
-            orig_width, orig_height = img.size
-            scaled_width = width * 0.85  # Scale each image to fit the page width
-            scaled_height = orig_height * (scaled_width / orig_width)  # Maintain aspect ratio
-            pdf.image(image_path, x=760, y=current_y, w=scaled_width, h=scaled_height)
-            current_y += scaled_height  # Update the y position for the next image
         else:
             img = Image.open(image_path)
             orig_width, orig_height = img.size
             scaled_width = width * 0.925 if both else width * 1.1  # Scale each image to fit the page width
             scaled_height = orig_height * (scaled_width / orig_width)  # Maintain aspect ratio
-            if both:
-                pdf.image(image_path, x=800, y=current_y, w=scaled_width, h=scaled_height)
-            else:
-                pdf.image(image_path, x=775, y=current_y+50, w=scaled_width, h=scaled_height)
-            current_y += scaled_height  # Update the y position for the next image
+        if both:
+            pdf.image(image_path, x=800, y=current_y, w=scaled_width, h=scaled_height)
+        else:
+            pdf.image(image_path, x=775, y=current_y+50, w=scaled_width, h=scaled_height)
+        current_y += scaled_height  # Update the y position for the next image
     pdf.set_font("Arial", '', 36)  
     title = f"Species ID: {species}"
     commonName = f"Common Name: {CommonName}"

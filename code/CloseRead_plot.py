@@ -309,13 +309,13 @@ def plot_mismatch_coverage(pileup, bin_count, positions, start_indices, end_indi
     plt.rcParams["axes.labelweight"] = "bold"
 
     # Set up subplots
-    fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(20, 3), gridspec_kw={'height_ratios': [1, 3]})
+    fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(20, 3), gridspec_kw={'height_ratios': [3, 5], 'width_ratios': [20,1]})
 
     # Plot read-view high mismatch regions
     legend=True
     for start, end in zip(start_indices, end_indices):
         highrate_label="{:.0%}".format(highrate)
-        axes[1].axvspan(start, end if end != high_mismatch_size else positions[-1], facecolor='rosybrown', label=f"High mismatch\narea (>{highrate_label})" if legend else "", alpha=0.3, zorder=3)
+        axes[1,0].axvspan(start, end if end != high_mismatch_size else positions[-1], facecolor='rosybrown', label=f"High mismatch\narea (>{highrate_label})" if legend else "", alpha=0.3, zorder=3)
         legend=False
     # Plot break regions
     legend=True
@@ -323,38 +323,40 @@ def plot_mismatch_coverage(pileup, bin_count, positions, start_indices, end_indi
         # if the break is too short, expand it so it is visible in figure
         if end - start < 5000:
             start, end = start - 4000, end + 4000
-        axes[1].axvspan(start, end, facecolor='purple', alpha=0.7, label=f"Break (<{breaknum} reads)" if legend else "")
+        axes[1,0].axvspan(start, end, facecolor='purple', alpha=0.7, label=f"Break (<{breaknum} reads)" if legend else "")
         legend=False
 
     # Plot percentage of mismatches per position
-    axes[1].fill_between(pileup['Pos'], 100 - pileup['PercentCorrect'], step="mid", 
-                         alpha=1, color=chr_color, zorder=2)
+    axes[1,0].fill_between(pileup['Pos'], 100 - pileup['PercentCorrect'], step="mid", 
+                         alpha=1, label='% of mismatches', color=chr_color, zorder=2)
 
     # Create heatmap for poorly supported percentage
     data_matrix = np.array(100 - bin_count["wellCount percent"])[np.newaxis]
     #heat = sns.heatmap(data_matrix, ax=axes[0], annot=False, cbar=True, yticklabels=20, cmap=cmap, 
     #            vmin=0, vmax=100, xticklabels=False)
-    sns.heatmap(data_matrix, ax=axes[0], annot=False, cbar=False, yticklabels=20, cmap=cmap, 
+    heat = sns.heatmap(data_matrix, ax=axes[0,0], annot=False, cbar_ax=axes[0,1],cbar=True,yticklabels=20, cmap=cmap, 
                 vmin=0, vmax=100, xticklabels=False)           
     # Customize spines for the heatmap
-    for spine in axes[0].spines.values():
+    for spine in axes[0,0].spines.values():
         spine.set_visible(True)
-
+    #axes[0].legend(bbox_to_anchor=(1.05, 1), loc="center right")
     # Set titles and labels
     baseview_correct_threshold_label="{:.0%}".format(baseview_correct_threshold / 100)
-    axes[0].set_title(f'Heatmap percentage coverage - % of position\nwith >{baseview_correct_threshold_label} mismatch per {bin_size} position in {chr_label}', 
+    axes[0,0].set_title(f'Heatmap percentage coverage - Number of position\nwith <{baseview_correct_threshold_label} mismatch per {bin_size} position in {chr_label}', 
                       fontweight='bold', size=11)
-    axes[1].set_title(f'Basepair view coverage (% of mismatch per position) in {chr_label}', 
+    axes[1,0].set_title(f'Basepair view coverage (% of mismatch per position) in {chr_label}', 
                       fontweight='bold', size=11)
-    axes[1].set_xlabel('Genomic Position')
-    axes[1].set_ylabel('% of mismatch\nper position')
-    axes[1].set_ylim(0, 101)
-    axes[1].set_xlim(min_position, max_position)
-    #heat.legend()
-    #heat.move_legend(heat, "center right",bbox_to_anchor=(3, 0))
+    axes[1,0].set_xlabel('Genomic Position')
+    axes[1,0].set_ylabel('% of mismatch\nper position')
+    axes[1,0].set_ylim(0, 101)
+    plt.delaxes(axes[1,1])
+    axes[1,0].legend(loc="center right", bbox_to_anchor=(1.15,0.5), frameon=False)
+    axes[1,0].set_xlim(min_position, max_position)
+    axes[0,1].set_title("Heatmap values")
+    #sns.move_legend(heat, "center right",bbox_to_anchor=(3, 0))
     # Adjust layout and margins
     plt.tight_layout()
-    axes[1].margins(x=0)
+    axes[1,0].margins(x=0)
 
     # Save the plot
     plt.savefig(os.path.join(dirOut,f'{gene}.{chr_label}.basecoverage.PerCorrect.png'), format="png", dpi=400, bbox_inches='tight')
