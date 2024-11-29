@@ -51,7 +51,8 @@ if __name__ == "__main__":
     parser.add_argument('--p', type=int, default=2000, metavar="padding", help="Padding around low coverage regions (default: 2000bps)")
     parser.add_argument('--re', type=float, default=0.01, metavar="single_read_error", help="Threshold for a single read to consider as high mismatch (default: 0.01)")
     parser.add_argument('--rc', type=int, default=5, metavar="readview_correct_threshold", help="Number of high mismatch reads needed to cover a position for it to be considered as high mismatch rate position from read-view (default: 5)")
-    parser.add_argument('--bc', type=int, default=5, metavar="baseview_correct_threshold", help="Threshold for the percent of reads with exact match at a position for it to be considered as well-supported, used in heatmap (default: 80 percent)")
+    parser.add_argument('--bin', type=int, default=1000, metavar="bin_size", help="Length of the range to perform mismatch reads count (default: 1000)")
+    parser.add_argument('--bc', type=int, default=80, metavar="baseview_correct_threshold", help="Threshold for the percent of reads with exact match at a position for it to be considered as well-supported, used in heatmap (default: 80 percent)")
     parser.add_argument('--m', type=str, metavar="meta", help="Absolute path to the meta information .csv file, used for generating pdf.")
     parser.add_argument('--so', action="store_true", default=False, help="output .txt and .csv files only, skip visualization.")
     parser.add_argument('--pg', type=str, metavar="gene_level assessment", help="Absolute path for gene level annotation file, Generate gene level read support information only.")
@@ -67,22 +68,28 @@ if __name__ == "__main__":
         species_list = [args.s]  # Convert single species into a list
    
     gene = args.g
+    baseview_correct_threshold = args.bc
+    lowCov_threshold=args.cov
+    bin_size = 1000
     haploid = False
     single_read_error = args.re
     readview_correct_threshold = args.rc
+
     chr1_color = "#6AABD7"
     chr2_color = "#F0DDB8"
 
     # Iterate through each species
     for species in species_list:
         haploid = False
-        dirOut = f"{args.dirPlot}/{species}"
-        dirStat = f"{args.dirStat}/{species}"
+        dirOut = os.path.join(args.dirPlot,species)
+        dirStat = os.path.join(args.dirStat,species)
         create_directories(species, dirStat, dirOut)
 
         #process basepair-view mpileup file
-        pri_pileup_file = f'{dirStat}/{gene}_pri_pileup.txt'
-        alt_pileup_file = f'{dirStat}/{gene}_alt_pileup.txt'
+        pri_pileup_file = os.path.join(dirStat,f'{gene}_pri_pileup.txt')
+        alt_pileup_file = os.path.join(dirStat,f'{gene}_alt_pileup.txt')
+        if not os.path.exists(pri_pileup_file):
+            raise FileNotFoundError(f"Pileup for primary haplotype is not found: {pri_pileup_file}")
         pri_pileup = process_pileup(pri_pileup_file)
         # Check if alternate pileup file exists
         hap=False
@@ -105,7 +112,7 @@ if __name__ == "__main__":
             read_alt = None
 
         # Process read-oriented input
-        read = process_read_file(f"{dirStat}/{gene}.txt", dirStat)
+        read = process_read_file(os.path.join(dirStat,f"{gene}.txt"), dirStat)
         chr1 = pri_pileup['Chrom'].value_counts().index[0]
         read_pri = read[(read['chromosome'] == chr1)]
         pri_pileup = pri_pileup[pri_pileup['Chrom']==chr1]
@@ -129,8 +136,8 @@ if __name__ == "__main__":
             merged_pileup = pri_pileup
         merged_pileup.sort_values(by=['Chrom', 'Pos'], inplace=True)
         # Find and output break locations 
-        break_regions_list, break_regions = process_low_coverage_regions(merged_pileup, lowCov_threshold=args.cov, padding=args.p)
-        with open(f"{dirOut}/{gene}.break.txt", 'w') as file:
+        break_regions_list, break_regions = process_low_coverage_regions(merged_pileup, lowCov_threshold=lowCov_threshold, padding=args.p)
+        with open(os.path.join(dirOut,f"{gene}.break.txt"), 'w') as file:
             for row in break_regions_list:
                 s = str(row)
                 file.write(s+'\n')
@@ -142,7 +149,7 @@ if __name__ == "__main__":
 
         if args.pg:
             genelevel_result = process_gene_data(gene_file=args.pg, merged_pileup=merged_pileup, read=read)
-            outFile = f"{dirOut}/{species}.{gene}.genelevel.csv"
+            outFile = os.path.join(dirOut,f"{species}.{gene}.genelevel.csv")
             genelevel_result.to_csv(outFile, sep='\t')
             print("gene level read support computed!")
         #Compute read-view stats
@@ -161,7 +168,7 @@ if __name__ == "__main__":
             plot_summary(read_pri, read_alt, "#6AABD7", "#F0DDB8", haploid, dirOut, gene, chr1, chr2,args.interactive)
         
         #Write read-view mismatch to file
-        with open(f"{dirOut}/{gene}.read.mismatch.txt", 'w') as file:
+        with open(os.path.join(dirOut,f"{gene}.read.mismatch.txt"), 'w') as file:
             for start, end in zip(start_indices_pri, end_indices_pri):
                 file.write(f"{chr1}:{start}-{end}\n")
             if not haploid:
@@ -171,20 +178,20 @@ if __name__ == "__main__":
         if not args.so:
             #Plot read coverage across loci
             plot_coverage(positions_pri, coverage_counts_pri, mid_counts_pri, zero_counts_pri, start_indices_pri,
-                        end_indices_pri, high_mismatch_bool_pri.size, start_break_pri, end_break_pri, min_position_pri, max_position_pri, chr1, gene, dirOut,args.interactive)
+                        end_indices_pri, high_mismatch_bool_pri.size, start_break_pri, end_break_pri, min_position_pri, max_position_pri, chr1, gene, dirOut,args.interactive,single_read_error,lowCov_threshold)
             if not haploid:
                 plot_coverage(positions_alt, coverage_counts_alt, mid_counts_alt, zero_counts_alt, start_indices_alt, 
-                            end_indices_alt, high_mismatch_bool_alt.size, start_break_alt, end_break_alt, min_position_alt, max_position_alt, chr2, gene, dirOut,args.interactive)
+                            end_indices_alt, high_mismatch_bool_alt.size, start_break_alt, end_break_alt, min_position_alt, max_position_alt, chr2, gene, dirOut,args.interactive,single_read_error,lowCov_threshold)
 
         #Compute basepair mismatch
-        bin_count = calculate_bin_counts(pri_pileup, baseview_correct_threshold=80, bin_size=1000)
+        bin_count = calculate_bin_counts(pri_pileup, baseview_correct_threshold, bin_size)
         if not haploid:
-            alt_bin_count = calculate_bin_counts(alt_pileup, baseview_correct_threshold=80, bin_size=1000)
+            alt_bin_count = calculate_bin_counts(alt_pileup, baseview_correct_threshold, bin_size)
 
         #Write base-view mismatch exact/average rough position to file - removes the content if the files already exist
-        with open(f"{dirOut}/{gene}.base.exactmismatch.csv", 'w') as f:
+        with open(os.path.join(dirOut,f"{gene}.base.exactmismatch.csv"), 'w') as f:
             f.write("Chrom,Pos,Correct,PercentCorrect,Depth,Indel\n")
-        with open(f"{dirOut}/{gene}.base.avgmismatch.csv", 'w') as f:
+        with open(os.path.join(dirOut,f"{gene}.base.avgmismatch.csv"), 'w') as f:
             f.write("Chrom,Start,End,AvgPercentMismatch,AvgDepth,AvgIndel\n")
         grouped_baseMis_pri = write_pileup(pri_pileup, gene, dirOut)
         if not haploid:
@@ -192,29 +199,32 @@ if __name__ == "__main__":
 
         #Compute overlapping mismatch regions between read-view and base-view
         overlaps_pri = find_overlapping_mismatch_regions(pri_pileup, start_indices_pri, end_indices_pri)
-        with open(f"{dirOut}/{species}.{gene}.{chr1}.finalMismatch.csv", 'w') as file:
+        overlaps_file=os.path.join(dirOut,f"{species}.{gene}.{chr1}.finalMismatch.csv")
+        with open(overlaps_file, 'w') as file:
             pass
-        overlaps_pri.to_csv(f"{dirOut}/{species}.{gene}.{chr1}.finalMismatch.csv", index=False)
+        overlaps_pri.to_csv(overlaps_file, index=False)
         if not haploid:
             overlaps_alt = find_overlapping_mismatch_regions(alt_pileup, start_indices_alt, end_indices_alt)
-            with open(f"{dirOut}/{species}.{gene}.{chr1}.finalMismatch.csv", 'w') as file:
+            overlaps_alt_file=os.path.join(dirOut,f"{species}.{gene}.{chr2}.finalMismatch.csv")
+            with open(overlaps_alt_file, 'w') as file:
                 pass
-            overlaps_alt.to_csv(f"{dirOut}/{species}.{gene}.{chr2}.finalMismatch.csv", index=False)
+            overlaps_alt.to_csv(overlaps_alt_file, index=False)
 
         if not args.so:
             #Plot basepair mismatch across loci
             #Define the colors for the heatmap
             colors = [(1, 1, 1), (0.6, 0.6, 0.6), (0.2, 0.2, 0.2), (0, 0, 0)]  
-            n_bins = 100  
-            cmap_name = 'custom'
-            cm = LinearSegmentedColormap.from_list(cmap_name, colors, N=n_bins)
+            #n_bins = 100  
+            #cmap_name = 'custom'
+            #cm = LinearSegmentedColormap.from_list(cmap_name, colors, N=n_bins)
+            cm = "Reds"
             plot_mismatch_coverage(pri_pileup, bin_count, positions_pri, start_indices_pri, end_indices_pri, 
                                 high_mismatch_bool_pri.size, start_break_pri, end_break_pri, 
-                                chr1_color, chr1, gene, dirOut, cm, min_position_pri, max_position_pri,args.interactive)
+                                chr1_color, chr1, gene, dirOut, cm, min_position_pri, max_position_pri,args.interactive,single_read_error,lowCov_threshold, baseview_correct_threshold, bin_size)
             if not haploid:
                 plot_mismatch_coverage(alt_pileup, bin_count, positions_alt, start_indices_alt, end_indices_alt, 
                                 high_mismatch_bool_alt.size, start_break_alt, end_break_alt, 
-                                chr2_color, chr2, gene, dirOut, cm, min_position_alt, max_position_alt,args.interactive)
+                                chr2_color, chr2, gene, dirOut, cm, min_position_alt, max_position_alt,args.interactive,single_read_error,lowCov_threshold, baseview_correct_threshold, bin_size)
 
         #Generate PDF - without dotplot
         if args.m:

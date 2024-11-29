@@ -60,7 +60,7 @@ def calculate_mismatches(read):
 def process_bam_file(bam_file_path, region_list_IGH, region_list_IGK, region_list_IGL, output_dir): #, region_list_TRA, region_list_TRB, region_list_TRG):
     """ Process a BAM file to estimate mismatches for each read. """
     # Output file names
-    if not os.path.exists(path):
+    if not os.path.exists(output_dir):
         print(f"{output_dir} was created.")
         os.makedirs(output_dir)
     else:

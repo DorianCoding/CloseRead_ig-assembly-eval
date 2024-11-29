@@ -118,7 +118,6 @@ def process_pileup(pileup_file):
 
     # Sort values by Chrom and Pos
     df_pileup.sort_values(by=['Chrom', 'Pos'], inplace=True)
-    
     return df_pileup
 
 def process_low_coverage_regions(pileup_df, lowCov_threshold=2, padding=2000):
@@ -270,7 +269,6 @@ def calculate_bin_counts(pileup, baseview_correct_threshold=80, bin_size=1000):
     """
     # Filter the data based on the percent correct threshold
     pileup_filtered = pileup[pileup['PercentCorrect'] > baseview_correct_threshold]
-
     # Create bin start positions
     pileup_filtered['Bin_Start_Pos'] = (pileup_filtered['Pos'] // bin_size) * bin_size
 
@@ -288,14 +286,12 @@ def calculate_bin_counts(pileup, baseview_correct_threshold=80, bin_size=1000):
 
 def write_pileup(pileup, gene, dirOut):
     # Write base exact mismatch to CSV
-    pileup.to_csv(f"{dirOut}/{gene}.base.exactmismatch.csv", mode='a', header=False, index=False)
+    pileup.to_csv(os.path.join(dirOut,f"{gene}.base.exactmismatch.csv"), mode='a', header=False, index=False)
 
     # Filter rows where PercentCorrect is less than 80
     baseMis = pileup[pileup['PercentCorrect'] < 80]
-    
     # Calculate PercentMismatch
     baseMis["PercentMismatch"] = 100 - baseMis['PercentCorrect']
-
     # Create regions for positions where the difference is >= 1000
     baseMis['PosDiff'] = baseMis['Pos'].diff().fillna(0)
     baseMis['Region'] = (baseMis['PosDiff'] >= 1000).cumsum()
@@ -311,7 +307,7 @@ def write_pileup(pileup, gene, dirOut):
     ).reset_index(drop=True)
 
     # Write average mismatch regions to CSV
-    grouped_baseMis.to_csv(f"{dirOut}/{gene}.base.avgmismatch.csv", mode='a', header=False, index=False)
+    grouped_baseMis.to_csv(os.path.join(dirOut,f"{gene}.base.avgmismatch.csv"), mode='a', header=False, index=False)
     return grouped_baseMis
 
 def find_overlapping_mismatch_regions(pileup, start_indices, end_indices, percent_threshold=80, pos_diff_threshold=1000):

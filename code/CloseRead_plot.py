@@ -73,7 +73,7 @@ def plot_locus_length(pri_pileup, alt_pileup, gene, chr1_color, chr2_color, dirO
         tick.set_rotation(90)
 
     # Save the plot
-    plt.savefig(f'{dirOut}/{gene}.length.png', format="png", dpi=300, bbox_inches='tight')
+    plt.savefig(os.path.join(dirOut,f'{gene}.length.png'), format="png", dpi=300, bbox_inches='tight')
     if show: plt.show()
 
 
@@ -189,7 +189,7 @@ def plot_summary(pri_data, alt_data, chr1_color, chr2_color, haploid, dirOut, ge
         plt.legend(custom, [f'{chr1}'], bbox_to_anchor=[2.5, 0], loc='lower right', frameon=False, markerscale=3)
         
     #plt.tight_layout()
-    plt.savefig(f'{dirOut}/{gene}.summary.allreads.png', format="png", dpi=300, bbox_inches='tight')
+    plt.savefig(os.path.join(dirOut,f'{gene}.summary.allreads.png'), format="png", dpi=300, bbox_inches='tight')
     if show: plt.show()
 
 
@@ -209,6 +209,8 @@ def plot_coverage(
     gene, 
     dirOut,
     show=False,
+    highrate=0.01,
+    breaknum=2,
     color60="#AAA", 
     colormid="#43EBF9", 
     color0="#F95143"
@@ -239,20 +241,23 @@ def plot_coverage(
     # Plot setup
     plt.rcParams["font.weight"] = "bold"
     plt.rcParams["axes.labelweight"] = "bold"
-
-    CovPlt, axes = plt.subplots(nrows=1, ncols=1, figsize=(20, 3), dpi=300)
+    dpi=400
+    CovPlt, axes = plt.subplots(nrows=1, ncols=1, figsize=(20, 3), dpi=dpi)
 
     # Plot read-view high mismatch regions
+    legend=True
     for start, end in zip(start_indices, end_indices):
-        axes.axvspan(start, end if end != high_mismatch_bool_size else positions[-1], facecolor='rosybrown', alpha=0.2, zorder=0)
-
+        highrate_label="{:.0%}".format(highrate)
+        axes.axvspan(start, end if end != high_mismatch_bool_size else positions[-1], label=f"High mismatch\narea (>{highrate_label})" if legend else "", facecolor='rosybrown', alpha=0.2, zorder=0)
+        legend=False
     # Plot break regions
+    legend=True
     for start, end in zip(start_breaks, end_breaks):
         # if the break is too short, expand it so it is visible in figure
         if end - start < 5000:
-            axes.axvspan(start - 4000, end + 4000, facecolor='purple', alpha=0.7)
-        else:
-            axes.axvspan(start, end, facecolor='purple', alpha=0.7)
+            start, end = start - 4000, end + 4000
+        axes.axvspan(start, end, facecolor='purple', alpha=0.7, label=f"Break (<{breaknum} reads)" if legend else "")
+        legend=False
 
     # Plot coverage for different mapping qualities
     axes.fill_between(positions, coverage_counts, step="pre", alpha=0.5, label='MapQ = 60', facecolor=color60, zorder=0.5)
@@ -270,14 +275,15 @@ def plot_coverage(
 
     # Save the plot
     plt.tight_layout()
-    plt.savefig(f'{dirOut}/{gene}.{chr_label}.readcoverage.all.png', format="png", dpi=300, bbox_inches='tight')
+    plt.savefig(os.path.join(dirOut,f'{gene}.{chr_label}.readcoverage.all.png'), format="png", dpi=dpi, bbox_inches='tight')
     if show: plt.show()
 
 
 
 def plot_mismatch_coverage(pileup, bin_count, positions, start_indices, end_indices, 
                            high_mismatch_size, start_breaks, end_breaks, chr_color, 
-                           chr_label, gene, dirOut, cmap, min_position, max_position, show=False):
+                           chr_label, gene, dirOut, cmap, min_position, max_position, show=False, highrate=0.01, breaknum=2,
+                           baseview_correct_threshold=80, bin_size=1000):
     """
     Plots basepair level coverage (% mismatch per position) and a heatmap of poorly supported positions.
 
@@ -306,15 +312,19 @@ def plot_mismatch_coverage(pileup, bin_count, positions, start_indices, end_indi
     fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(20, 3), gridspec_kw={'height_ratios': [1, 3]})
 
     # Plot read-view high mismatch regions
+    legend=True
     for start, end in zip(start_indices, end_indices):
-        axes[1].axvspan(start, end if end != high_mismatch_size else positions[-1], facecolor='rosybrown', alpha=0.3, zorder=3)
-
+        highrate_label="{:.0%}".format(highrate)
+        axes[1].axvspan(start, end if end != high_mismatch_size else positions[-1], facecolor='rosybrown', label=f"High mismatch\narea (>{highrate_label})" if legend else "", alpha=0.3, zorder=3)
+        legend=False
     # Plot break regions
+    legend=True
     for start, end in zip(start_breaks, end_breaks):
+        # if the break is too short, expand it so it is visible in figure
         if end - start < 5000:
-            axes[1].axvspan(start - 4000, end + 4000, facecolor='purple', alpha=0.7, zorder=3)
-        else:
-            axes[1].axvspan(start, end, facecolor='purple', alpha=0.7, zorder=3)
+            start, end = start - 4000, end + 4000
+        axes[1].axvspan(start, end, facecolor='purple', alpha=0.7, label=f"Break (<{breaknum} reads)" if legend else "")
+        legend=False
 
     # Plot percentage of mismatches per position
     axes[1].fill_between(pileup['Pos'], 100 - pileup['PercentCorrect'], step="mid", 
@@ -322,25 +332,30 @@ def plot_mismatch_coverage(pileup, bin_count, positions, start_indices, end_indi
 
     # Create heatmap for poorly supported percentage
     data_matrix = np.array(100 - bin_count["wellCount percent"])[np.newaxis]
-    sns.heatmap(data_matrix, ax=axes[0], annot=False, cbar=False, yticklabels=False, cmap=cmap, 
-                vmin=0, vmax=50, xticklabels=False)
-
+    #heat = sns.heatmap(data_matrix, ax=axes[0], annot=False, cbar=True, yticklabels=20, cmap=cmap, 
+    #            vmin=0, vmax=100, xticklabels=False)
+    sns.heatmap(data_matrix, ax=axes[0], annot=False, cbar=False, yticklabels=20, cmap=cmap, 
+                vmin=0, vmax=100, xticklabels=False)           
     # Customize spines for the heatmap
     for spine in axes[0].spines.values():
         spine.set_visible(True)
 
     # Set titles and labels
-    axes[0].set_title(f'Basepair view coverage (% of mismatch per position) in {chr_label}', 
-                      fontweight='bold', size=12)
+    baseview_correct_threshold_label="{:.0%}".format(baseview_correct_threshold / 100)
+    axes[0].set_title(f'Heatmap percentage coverage - % of position\nwith >{baseview_correct_threshold_label} mismatch per {bin_size} position in {chr_label}', 
+                      fontweight='bold', size=11)
+    axes[1].set_title(f'Basepair view coverage (% of mismatch per position) in {chr_label}', 
+                      fontweight='bold', size=11)
     axes[1].set_xlabel('Genomic Position')
     axes[1].set_ylabel('% of mismatch\nper position')
     axes[1].set_ylim(0, 101)
     axes[1].set_xlim(min_position, max_position)
-
+    #heat.legend()
+    #heat.move_legend(heat, "center right",bbox_to_anchor=(3, 0))
     # Adjust layout and margins
     plt.tight_layout()
     axes[1].margins(x=0)
 
     # Save the plot
-    plt.savefig(f'{dirOut}/{gene}.{chr_label}.basecoverage.PerCorrect.png', format="png", dpi=300, bbox_inches='tight')
+    plt.savefig(os.path.join(dirOut,f'{gene}.{chr_label}.basecoverage.PerCorrect.png'), format="png", dpi=400, bbox_inches='tight')
     if show: plt.show()
