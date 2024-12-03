@@ -57,7 +57,7 @@ def calculate_mismatches(read):
             total_indel_length += length
     return mismatches, longindels, total_indel_length, soft_clipping, hard_clipping
 
-def process_bam_file(bam_file_path, region_list_IGH, region_list_IGK, region_list_IGL, output_dir): #, region_list_TRA, region_list_TRB, region_list_TRG):
+def process_bam_file(bam_file_path, regions, output_dir): #, region_list_TRA, region_list_TRB, region_list_TRG):
     """ Process a BAM file to estimate mismatches for each read. """
     # Output file names
     if not os.path.exists(output_dir):
@@ -65,87 +65,26 @@ def process_bam_file(bam_file_path, region_list_IGH, region_list_IGK, region_lis
         os.makedirs(output_dir)
     else:
         print(f"{output_dir} already exists and will be overwritten.")
-    output_file_names = [os.path.join(output_dir, "IGH.txt"), os.path.join(output_dir, "IGK.txt"), os.path.join(output_dir, "IGL.txt")]#, os.path.join(output_dir, "TRA.txt"), os.path.join(output_dir, "TRB.txt"), os.path.join(output_dir, "TRG.txt")]
+    output_file_names = [os.path.join(output_dir, f"{key}.txt") for key in regions.keys()]#, os.path.join(output_dir, "TRA.txt"), os.path.join(output_dir, "TRB.txt"), os.path.join(output_dir, "TRG.txt")]
     #non_overlap_file_name = os.path.join(output_dir,"nonIG.txt")
 
     # Open output files
     output_files = [open(name, "w") for name in output_file_names]
     #non_overlap_file = open(non_overlap_file_name, "w")
 
-    treesIGH = {}
-    treesIGK = {}
-    treesIGL = {}
-    #treesTRA = {}
-    #treesTRB = {}
-    #treesTRG = {}
-    for i, region in enumerate(region_list_IGH):
-        # Split the string into chromosome and the 'start-end' part
-        chrom, positions = region.split(':')
-        # Further split the 'start-end' part into start and end positions
-        start, end = positions.split('-')
-        if chrom not in treesIGH:
-            treesIGH[chrom] = IntervalTree()
-            if chrom != '':
-                treesIGH[chrom].addi(int(start), int(end))
-            else:
-                treesIGH[chrom].addi(0, 1)
-    for i, region in enumerate(region_list_IGK):
-        # Split the string into chromosome and the 'start-end' part
-        chrom, positions = region.split(':')
-        # Further split the 'start-end' part into start and end positions
-        start, end = positions.split('-')
-        if chrom not in treesIGK:
-            treesIGK[chrom] = IntervalTree()
-            if chrom != '':
-                treesIGK[chrom].addi(int(start), int(end))
-            else:
-                treesIGK[chrom].addi(0, 1)
-    for i, region in enumerate(region_list_IGL):
-        # Split the string into chromosome and the 'start-end' part
-        chrom, positions = region.split(':')
-        # Further split the 'start-end' part into start and end positions
-        start, end = positions.split('-')
-        if chrom not in treesIGL:
-            treesIGL[chrom] = IntervalTree()
-            if chrom != '':
-                treesIGL[chrom].addi(int(start), int(end))
-            else:
-                treesIGL[chrom].addi(0, 1)
-    # for i, region in enumerate(region_list_TRA):
-    #     # Split the string into chromosome and the 'start-end' part
-    #     chrom, positions = region.split(':')
-    #     # Further split the 'start-end' part into start and end positions
-    #     start, end = positions.split('-')
-    #     if chrom not in treesTRA:
-    #         treesTRA[chrom] = IntervalTree()
-    #         if chrom != '':
-    #             treesTRA[chrom].addi(int(start), int(end))
-    #         else:
-    #             treesTRA[chrom].addi(0, 1)
-    # for i, region in enumerate(region_list_TRB):
-    #     # Split the string into chromosome and the 'start-end' part
-    #     chrom, positions = region.split(':')
-    #     # Further split the 'start-end' part into start and end positions
-    #     start, end = positions.split('-')
-    #     if chrom not in treesTRB:
-    #         treesTRB[chrom] = IntervalTree()
-    #         if chrom != '':
-    #             treesTRB[chrom].addi(int(start), int(end))
-    #         else:
-    #             treesTRB[chrom].addi(0, 1)
-    # for i, region in enumerate(region_list_TRG):
-    #     # Split the string into chromosome and the 'start-end' part
-    #     chrom, positions = region.split(':')
-    #     # Further split the 'start-end' part into start and end positions
-    #     start, end = positions.split('-')
-    #     if chrom not in treesTRG:
-    #         treesTRG[chrom] = IntervalTree()
-    #         if chrom != '':
-    #             treesTRG[chrom].addi(int(start), int(end))
-    #         else:
-    #             treesTRG[chrom].addi(0, 1)
-    
-    trees = [treesIGH, treesIGK, treesIGL] #, treesTRA, treesTRB, treesTRG]
+    trees = []
+    for i, regionbig in enumerate(regions):
+        for region in regionbig:
+            # Split the string into git hromosome and the 'start-end' part
+            chrom, positions = region.split(':')
+            # Further split the 'start-end' part into start and end positions
+            start, end = positions.split('-')
+            if chrom not in treesIGH:
+                trees[chrom] = IntervalTree()
+                if chrom != '':
+                    trees[chrom].addi(int(start), int(end))
+                else:
+                    trees[chrom].addi(0, 1)
     print(trees)
     bamfile = pysam.AlignmentFile(bam_file_path, "rb")
     if not bamfile.check_index():
@@ -228,12 +167,7 @@ def main():
         parser.error("Input file must be a SAM or BAM file.")
 
     # Initialize the lists for each gene type
-    region_list_IGH = []
-    region_list_IGK = []
-    region_list_IGL = []
-    # region_list_TRA = []
-    # region_list_TRB = []
-    # region_list_TRG = []
+    regions = {}
 
     # Open the file and read line by line
     with open(args.IG_region, 'r') as file:
@@ -241,33 +175,33 @@ def main():
             # Split each line into its components
             parts = line.split()
             # Extract relevant data
+            altbool = True if parts[1]=="alternate" else "primary"
             gene_type = parts[2]
             chr_name = parts[3]
             start = parts[4]
             end = parts[5]
             region = f"{chr_name}:{start}-{end}"
             # Append the region to the corresponding list based on gene type
-            if gene_type == 'IGH':
-                region_list_IGH.append(region)
-            elif gene_type == 'IGK':
-                region_list_IGK.append(region)
-            elif gene_type == 'IGL':
-                region_list_IGL.append(region)
-            # elif gene_type == 'TRA':
-            #     region_list_TRA.append(region)
-            # elif gene_type == 'TRB':
-            #     region_list_TRB.append(region)
-            # elif gene_type == 'TRG':
-            #     region_list_TRG.append(region)
+            gene_type=gene_type.upper()
+            if gene_type not in ["IGH","IGK","IGL","TRA","TRD","TRG","TRB"]:
+                print(f"{gene_type} is not recognized as valid and is skipped.")
+                continue
+            elif gene_type in regions: #Haplotype
+                elem=len(regions[gene_type])
+                if elem>=2:
+                    print(f"More than 2 regions for the locus {gene_type}, skipped.")
+                    continue
+                else:
+                    elem.append(regions)
+            else:
+                regions[gene_type]=[region]
 
 
     # Output the lists to check
-    print("IGH regions:", region_list_IGH)
-    print("IGK regions:", region_list_IGK)
-    print("IGL regions:", region_list_IGL)
-
+    print("Regions:", regions)
+    outdir=os.path.join(args.output,args.species)
     if args.input_file.endswith('.sam') or args.input_file.endswith('.bam'):
-        process_bam_file(args.input_file, region_list_IGH, region_list_IGK, region_list_IGL, args.output) #region_list_TRA, region_list_TRB, region_list_TRG)
+        process_bam_file(args.input_file, regions, outdir) #region_list_TRA, region_list_TRB, region_list_TRG)
     else:
         raise ValueError("Not implemented.")
 
