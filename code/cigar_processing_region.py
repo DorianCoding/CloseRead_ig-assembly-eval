@@ -152,6 +152,7 @@ def process_bam_file(bam_file_path, region_list_IGH, region_list_IGK, region_lis
         print("No index found, exiting")
         return
     print("")
+    output_files[i].write("#Read_name\tChromosome\tStart\tRead_length\tMapQ\tMismatches\tMismatch_rate\tLongindels\tTotal indel length\tIndel rate\tSoft clipping\tHard clipping\n")
     for i, tree_dict in enumerate(trees):
         for chr, pos in tree_dict.items():
             reads = bamfile.fetch(None,None,None,str(chr) + ":" + str(pos.begin()) + "-" + str(pos.end()))
