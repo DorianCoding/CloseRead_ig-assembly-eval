@@ -72,28 +72,27 @@ def process_bam_file(bam_file_path, regions, output_dir): #, region_list_TRA, re
     output_files = [open(name, "w") for name in output_file_names]
     #non_overlap_file = open(non_overlap_file_name, "w")
 
-    trees = []
-    for i, regionbig in enumerate(regions):
+    trees = {}
+    for locus, regionbig in regions.items():
         for region in regionbig:
             # Split the string into git hromosome and the 'start-end' part
             chrom, positions = region.split(':')
             # Further split the 'start-end' part into start and end positions
             start, end = positions.split('-')
-            if chrom not in treesIGH:
-                trees[chrom] = IntervalTree()
-                if chrom != '':
-                    trees[chrom].addi(int(start), int(end))
-                else:
-                    trees[chrom].addi(0, 1)
+            trees[locus] = [(chrom,IntervalTree())]
+            if chrom != '':
+               trees[locus][-1][1].addi(int(start), int(end))
+            else:
+               trees[locus][-1][1].addi(0, 1)
     print(trees)
     bamfile = pysam.AlignmentFile(bam_file_path, "rb")
     if not bamfile.check_index():
         print("No index found, exiting")
         return
     print("")
-    output_files[i].write("#Read_name\tChromosome\tStart\tRead_length\tMapQ\tMismatches\tMismatch_rate\tLongindels\tTotal indel length\tIndel rate\tSoft clipping\tHard clipping\n")
-    for i, tree_dict in enumerate(trees):
-        for chr, pos in tree_dict.items():
+    for i, (locus,tree_dict) in enumerate(trees.items()):
+        output_files[i].write("#Read_name\tChromosome\tStart\tRead_length\tMapQ\tMismatches\tMismatch_rate\tLongindels\tTotal indel length\tIndel rate\tSoft clipping\tHard clipping\n")
+        for (chr,pos) in tree_dict:
             reads = bamfile.fetch(None,None,None,str(chr) + ":" + str(pos.begin()) + "-" + str(pos.end()))
             if not reads:
                 print(f"No reads found in region: {chr}:{pos}, skipping")
