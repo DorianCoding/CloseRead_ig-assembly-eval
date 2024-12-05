@@ -33,7 +33,7 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
 def calculate_mismatches(read):
     """ Calculate the number of mismatches using NM tag and CIGAR string. """
     cigartest = read.get_cigar_stats()
-    if cigartest.len() == 0:
+    if len(cigartest) == 0:
         print(f"No read for {read}, skipped")
         return -1, 0, 0, 0, 0
     cigartest= cigartest[0]
