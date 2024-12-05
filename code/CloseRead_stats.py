@@ -367,7 +367,9 @@ def find_overlapping_mismatch_regions(pileup, start_indices, end_indices, percen
 
     return overlaps_df
 
-
+def format_row(row):
+    return f"{row['Name']}, {row['Age']} years old from {row['City']}"
+    
 def process_gene_data(gene_file, merged_pileup, read):
     """
     Processes the gene file and performs calculations such as coverage, mismatch rates, 
@@ -443,8 +445,19 @@ def process_gene_data(gene_file, merged_pileup, read):
             percent_accuracy = 0
 
         # Compile mismatch and match positions as strings for reporting
-        position_mismatches = ';'.join(map(str, gene_df['Depth'] - gene_df['Correct']))
-        position_matches = ';'.join(map(str, gene_df['Correct']))
+        position_matches=[]
+        position_mismatches=[]
+
+        position_mismatches_perc=[]
+        for (_,elem) in gene_df.iterrows():
+            if elem['Correct']==elem['Depth']:
+                continue
+            #position_matches.append(f"{elem['Pos']}-{elem['Pos']-start+1}-({elem['Correct']})/{elem['Depth']}")
+            position_mismatches.append(f"{elem['Pos']}-{elem['Pos']-start+1}-({elem['Depth'] - elem['Correct']})/{elem['Depth']}")
+            position_mismatches_perc.append(f"{elem['Pos']}-{elem['Pos']-start+1}-" + str(round((elem['Depth'] - elem['Correct'])/elem['Depth'],2)))
+        #position_matches = ';'.join(position_matches)
+        position_mismatches = ';'.join(position_mismatches)
+        position_mismatches_perc = ';'.join(map(str,position_mismatches_perc))
 
         # Update the gene DataFrame with calculated metrics
         genes.loc[index, 'Average_Coverage'] = average_coverage
@@ -453,7 +466,8 @@ def process_gene_data(gene_file, merged_pileup, read):
         genes.loc[index, 'Matched_Positions'] = match_positions
         genes.loc[index, 'Matched_Positions_Percent'] = match_positions_percent
         genes.loc[index, 'Position_Mismatches'] = position_mismatches
-        genes.loc[index, 'Position_Matches'] = position_matches
+        genes.loc[index, 'Mismatched_Positions_round'] = position_mismatches_perc
+        #genes.loc[index, 'Position_Matches'] = position_matches
         genes.loc[index, 'Percent_Accuracy'] = percent_accuracy
         genes.loc[index, 'Positions_With_At_Least_10x_Coverage'] = positions_with_10x
         genes.loc[index, 'Fully_Spanning_Reads'] = reads_spanning_region

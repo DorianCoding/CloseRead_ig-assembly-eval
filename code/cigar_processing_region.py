@@ -32,7 +32,15 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
         print()
 def calculate_mismatches(read):
     """ Calculate the number of mismatches using NM tag and CIGAR string. """
-    cigartest = read.get_cigar_stats()[0]
+    cigartest = read.get_cigar_stats()
+    if cigartest.len() == 0:
+        print(f"No read for {read}, skipped")
+        return -1, 0, 0, 0, 0
+    cigartest= cigartest[0]
+    cigarresults=read.cigartuples
+    if not cigarresults:
+        print(f"No read for {read}, skipped")
+        return -1, 0, 0, 0, 0
     """
     nm_tag = read.get_tag('NM') if read.has_tag('NM') else 0
     insertions = sum(length for op, length in read.cigartuples if op == 1)  # Sum of 'I'
@@ -50,7 +58,7 @@ def calculate_mismatches(read):
     mismatches = nm_tag - insertions - deletions - ambiguous
     longindels = 0
     total_indel_length = 0
-    for operation, length in read.cigartuples:
+    for operation, length in cigarresults:
         # Insertion or Deletion longer than 2
         if (operation == 1 or operation == 2) and length > 2:
             longindels += 1
@@ -99,6 +107,8 @@ def process_bam_file(bam_file_path, regions, output_dir): #, region_list_TRA, re
                 continue
             for read in reads:
                 mismatches, longindels, total_indel_length, soft_clipping, hard_clipping = calculate_mismatches(read)
+                if mismatches == -1:
+                    continue #Cancel no cigar
                 read_length = read.query_length if read.query_length else read.infer_query_length()
                 if not read_length:
                     print(f"Read {read_name} is skipped because no length found.")
