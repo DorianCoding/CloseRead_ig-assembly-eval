@@ -1,21 +1,8 @@
 import re
 import sys
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 import argparse
 import os
 import warnings
-import pandas as pd
-from fpdf import FPDF
-import cairosvg
-from IPython.display import SVG, display
-import math
-from matplotlib.colors import LinearSegmentedColormap
-from matplotlib.lines import Line2D
-from fpdf import FPDF
-from PIL import Image
-from intervaltree import Interval, IntervalTree
 # Import necessary functions from CloseRead_plot.py
 from CloseRead_plot import plot_locus_length, plot_summary, plot_coverage, plot_mismatch_coverage
 

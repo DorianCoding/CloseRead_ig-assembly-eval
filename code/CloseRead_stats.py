@@ -2,19 +2,10 @@ import re
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
 import argparse
 import os
 import warnings
 import pandas as pd
-from fpdf import FPDF
-import cairosvg
-from IPython.display import SVG, display
-import math
-from matplotlib.colors import LinearSegmentedColormap
-from matplotlib.lines import Line2D
-from fpdf import FPDF
-from PIL import Image
 from intervaltree import Interval, IntervalTree
 warnings.filterwarnings('ignore')
 
@@ -46,10 +37,10 @@ def parse_read_bases(read_bases):
     read starts (^), read ends ($).
     """
     # Remove read start markers (^) along with the following character indicating mapping quality
-    cleaned_bases = re.sub(r'\^.', '', read_bases)
+    read_bases = re.sub(r'\^.', '', read_bases)
 
     # Remove read end markers ($)
-    cleaned_bases = cleaned_bases.replace('$', '')
+    cleaned_bases = read_bases.replace('$', '')
 
     # handle indels: remove sequences following + or - indicating the length and actual indel
     cleaned_bases = re.sub(r'[\+\-](\d+)([ACGTNacgtn]+)', '', cleaned_bases)
@@ -59,7 +50,8 @@ def parse_read_bases(read_bases):
 
     # After removing all special cases, count '.' and ',' as correct matches
     correct = cleaned_bases.count('.') + cleaned_bases.count(',')
-
+    if correct != read_bases.count('.') + read_bases.count(','):
+        raise ValueError(f"Pb counting on: {read_bases}")
     return correct
 
 def count_indels(read_bases):
@@ -76,7 +68,8 @@ def count_indels(read_bases):
 
     return indel_count
 
-
+def quality_processing(char):
+    return max(0,ord(char)-33)
 def process_pileup(pileup_file):
     """
     Process a pileup file to extract relevant metrics (correct matches, indels, percent correct).
@@ -91,7 +84,7 @@ def process_pileup(pileup_file):
     with open(pileup_file, 'r') as f:
         for line in f:
             try:
-                chrom, pos, ref_base, depth, read_bases, _ = line.split()[:6]
+                chrom, pos, ref_base, depth, read_bases, quality = line.split()[:6]
                 correct = parse_read_bases(read_bases)
                 indel = count_indels(read_bases)
                 depth = int(depth)
@@ -100,14 +93,16 @@ def process_pileup(pileup_file):
                 else:
                     percent_correct = 0
                 # Store the result
-                results[(chrom, pos)] = (correct, percent_correct, depth, indel)
+                quality = np.array([q.strip() for q in quality])
+                quality = np.mean(np.vectorize(quality_processing)(quality))
+                results[(chrom, pos)] = (correct, percent_correct, depth, indel, quality)
             except Exception as e:
                 print(f"Error processing line: {line.strip()}, Error: {e}")
                 continue
 
     # Convert to a pandas DataFrame
     pileup_data = [(*key, *value) for key, value in results.items()]
-    df_pileup = pd.DataFrame(pileup_data, columns=['Chrom', 'Pos', 'Correct', 'PercentCorrect', 'Depth', 'Indel'])
+    df_pileup = pd.DataFrame(pileup_data, columns=['Chrom', 'Pos', 'Correct', 'PercentCorrect', 'Depth', 'Indel', 'Quality'])
     
     # Convert necessary columns to numeric
     df_pileup['Pos'] = pd.to_numeric(df_pileup['Pos'])
@@ -386,7 +381,6 @@ def process_gene_data(gene_file, merged_pileup, read):
 
     # Load the gene file
     genes = pd.read_csv(gene_file)
-
     # Check if the input file is precomputed format (Gene, Chromosome, Strand, Start, End)
     if 'Start' in genes.columns and 'End' in genes.columns:
         # Detected Type 2 format

@@ -252,6 +252,7 @@ def plot_coverage(
         legend=False
     # Plot break regions
     legend=True
+    axes.set_yticks([0,20,40,60,80,100])
     for start, end in zip(start_breaks, end_breaks):
         # if the break is too short, expand it so it is visible in figure
         if end - start < 5000:
@@ -304,12 +305,12 @@ def plot_mismatch_coverage(pileup, bin_count, positions, start_indices, end_indi
     """
 
     # Set plotting options
-    mpl.rcParams['agg.path.chunksize'] = 1000000000
+    mpl.rcParams['agg.path.chunksize'] = 10000000000000
     plt.rcParams["font.weight"] = "bold"
     plt.rcParams["axes.labelweight"] = "bold"
 
     # Set up subplots
-    fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(20, 3), gridspec_kw={'height_ratios': [3, 5], 'width_ratios': [20,1]})
+    fig, axes = plt.subplots(nrows=3, ncols=2, figsize=(20, 8), gridspec_kw={'height_ratios': [3, 5, 3], 'width_ratios': [20,1]})
 
     # Plot read-view high mismatch regions
     legend=True
@@ -329,7 +330,8 @@ def plot_mismatch_coverage(pileup, bin_count, positions, start_indices, end_indi
     # Plot percentage of mismatches per position
     axes[1,0].fill_between(pileup['Pos'], 100 - pileup['PercentCorrect'], step="mid", 
                          alpha=1, label='% of mismatches', color=chr_color, zorder=2)
-
+    axes[2,0].fill_between(pileup['Pos'], pileup['Quality'], step="mid", 
+                         alpha=1, label='Quality', color='Greens', zorder=3)
     # Create heatmap for poorly supported percentage
     data_matrix = np.array(100 - bin_count["wellCount percent"])[np.newaxis]
     #heat = sns.heatmap(data_matrix, ax=axes[0], annot=False, cbar=True, yticklabels=20, cmap=cmap, 
@@ -349,6 +351,11 @@ def plot_mismatch_coverage(pileup, bin_count, positions, start_indices, end_indi
     axes[1,0].set_xlabel('Genomic Position')
     axes[1,0].set_ylabel('% of mismatch\nper position')
     axes[1,0].set_ylim(0, 101)
+    axes[2,0].set_title(f'Sequencing quality in {chr_label}', 
+                      fontweight='bold', size=11)
+    axes[2,0].set_xlabel('Genomic Position')
+    axes[2,0].set_ylabel('Mean quality')
+    axes[2,0].set_ylim(0, 101)
     plt.delaxes(axes[1,1])
     axes[1,0].legend(loc="center right", bbox_to_anchor=(1.15,0.5), frameon=False)
     axes[1,0].set_xlim(min_position, max_position)
