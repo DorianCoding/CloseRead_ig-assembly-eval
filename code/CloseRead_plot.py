@@ -305,12 +305,12 @@ def plot_mismatch_coverage(pileup, bin_count, positions, start_indices, end_indi
     """
 
     # Set plotting options
-    mpl.rcParams['agg.path.chunksize'] = 10000000000000
+    mpl.rcParams['agg.path.chunksize'] = 1000000000
     plt.rcParams["font.weight"] = "bold"
     plt.rcParams["axes.labelweight"] = "bold"
 
     # Set up subplots
-    fig, axes = plt.subplots(nrows=3, ncols=2, figsize=(20, 8), gridspec_kw={'height_ratios': [3, 5, 3], 'width_ratios': [20,1]})
+    fig, axes = plt.subplots(nrows=3, ncols=2, figsize=(20, 5), gridspec_kw={'height_ratios': [1, 5, 3], 'width_ratios': [20,1]})
 
     # Plot read-view high mismatch regions
     legend=True
@@ -331,7 +331,7 @@ def plot_mismatch_coverage(pileup, bin_count, positions, start_indices, end_indi
     axes[1,0].fill_between(pileup['Pos'], 100 - pileup['PercentCorrect'], step="mid", 
                          alpha=1, label='% of mismatches', color=chr_color, zorder=2)
     axes[2,0].fill_between(pileup['Pos'], pileup['Quality'], step="mid", 
-                         alpha=1, label='Quality', color='Greens', zorder=3)
+                         alpha=1, label='Quality', color='black', zorder=3)
     # Create heatmap for poorly supported percentage
     data_matrix = np.array(100 - bin_count["wellCount percent"])[np.newaxis]
     #heat = sns.heatmap(data_matrix, ax=axes[0], annot=False, cbar=True, yticklabels=20, cmap=cmap, 
@@ -357,7 +357,9 @@ def plot_mismatch_coverage(pileup, bin_count, positions, start_indices, end_indi
     axes[2,0].set_ylabel('Mean quality')
     axes[2,0].set_ylim(0, 101)
     plt.delaxes(axes[1,1])
+    plt.delaxes(axes[2,1])
     axes[1,0].legend(loc="center right", bbox_to_anchor=(1.15,0.5), frameon=False)
+    axes[2,0].legend(loc="center right", bbox_to_anchor=(0.65,0.5), frameon=False)
     axes[1,0].set_xlim(min_position, max_position)
     axes[0,1].set_title("Heatmap values")
     #sns.move_legend(heat, "center right",bbox_to_anchor=(3, 0))

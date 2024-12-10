@@ -403,7 +403,9 @@ def process_gene_data(gene_file, merged_pileup, read):
 
     else:
         raise ValueError("Unsupported file format. Ensure the input file is in one of the supported formats. \n 1. Gene, Chromosome, Strand, Start, End \n 2. GeneType Contig Pos Strand Sequence Productive Locus")
-
+    print(merged_pileup,read)
+    invert = genes['Pos'] > genes['EndPos']
+    genes.loc[invert, ['Pos','EndPos']] = genes.loc[invert, ['EndPos','Pos']].values
     # Iterate over each gene in the DataFrame
     for index, row in genes.iterrows():
         # Extract gene information from the row
@@ -419,7 +421,6 @@ def process_gene_data(gene_file, merged_pileup, read):
             raise ValueError(f"No data extracted from pileup, did you name chromosome and position correctly? Got chromosome {chrom}, {start}: {end}")
         # Calculate positions with at least 10x coverage
         positions_with_10x = (gene_df['Depth'] >= 10).sum()
-
         # Calculate mismatch rate and classify positions
         gene_df['mismatch_rate'] = 100 - gene_df['PercentCorrect']
         mismatch_positions = (gene_df['mismatch_rate'] > 20).sum()
@@ -439,17 +440,21 @@ def process_gene_data(gene_file, merged_pileup, read):
             percent_accuracy = 0
 
         # Compile mismatch and match positions as strings for reporting
-        position_matches=[]
+        #position_matches=[]
         position_mismatches=[]
-
+        #position_matches_perc=[]
         position_mismatches_perc=[]
         for (_,elem) in gene_df.iterrows():
             if elem['Correct']==elem['Depth']:
                 continue
             #position_matches.append(f"{elem['Pos']}-{elem['Pos']-start+1}-({elem['Correct']})/{elem['Depth']}")
-            position_mismatches.append(f"{elem['Pos']}-{elem['Pos']-start+1}-({elem['Depth'] - elem['Correct']})/{elem['Depth']}")
-            position_mismatches_perc.append(f"{elem['Pos']}-{elem['Pos']-start+1}-" + str(round((elem['Depth'] - elem['Correct'])/elem['Depth'],2)))
+            position_mismatches.append(f"{elem['Depth'] - elem['Correct']}")
+            #position_matches.append(f"{elem['Correct']}")
+            position_mismatches_perc.append(str(round((elem['Depth'] - elem['Correct'])/elem['Depth'],2)))
+            #position_matches_perc.append(str(round(elem['Correct']/elem['Depth'],2)))
         #position_matches = ';'.join(position_matches)
+        #position_matches = ";".join(position_matches)
+        #position_matches_perc = ";".join(position_matches_perc)
         position_mismatches = ';'.join(position_mismatches)
         position_mismatches_perc = ';'.join(map(str,position_mismatches_perc))
 

@@ -106,6 +106,9 @@ def process_bam_file(bam_file_path, regions, output_dir): #, region_list_TRA, re
                 print(f"No reads found in region: {chr}:{pos}, skipping")
                 continue
             for read in reads:
+                print(read.get_aligned_pairs(False,True))
+                print(read.get_overlap(pos.begin(),pos.end()))
+                sys.exit(1)
                 mismatches, longindels, total_indel_length, soft_clipping, hard_clipping = calculate_mismatches(read)
                 if mismatches == -1:
                     continue #Cancel no cigar
