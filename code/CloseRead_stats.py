@@ -8,7 +8,6 @@ import warnings
 import pandas as pd
 from intervaltree import Interval, IntervalTree
 warnings.filterwarnings('ignore')
-
 # Function to read species from a file
 def read_species_from_file(file_path):
     with open(file_path, 'r') as f:
@@ -171,9 +170,8 @@ def process_read_file(file_path, dirStat):
     ]
     
     # Read the file into a DataFrame
-    read_file = pd.read_csv(file_path, sep="\t", skiprows=1, names=read_file_columns)
-
-    # List of numeric columns to convert
+    read_file = pd.read_csv(file_path, sep="\t", names=read_file_columns)
+    read_file.drop(read_file.columns[read_file.columns.str.strip().str.startswith('#')], axis=1,inplace=True)
     numeric_columns = [
         'start', 'read_length', 'mapping_quality', 'mismatches', 'mismatch_rate', 
         'longindels', 'total_indel_length', 'indel_rate', 'soft_clipping', 'hard_clipping'
