@@ -171,7 +171,7 @@ def process_read_file(file_path, dirStat):
     ]
     
     # Read the file into a DataFrame
-    read_file = pd.read_csv(file_path, sep="\t", comment='#', names=read_file_columns)
+    read_file = pd.read_csv(file_path, sep="\t", skiprows=1, names=read_file_columns)
 
     # List of numeric columns to convert
     numeric_columns = [
